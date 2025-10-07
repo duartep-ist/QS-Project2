@@ -57,3 +57,33 @@ lemma simplifyExp(a: int, b: nat, r: int)
 			simplifyExpEven(a, b, r);
 		}
 	}
+
+method FastExp(x: int, n: int) returns (r: int)
+	requires n >= 0
+	ensures r == exp(x,n)
+{
+	r := 1;
+	var c := x;
+	var b := n;
+	while b > 0
+		invariant b >= 0
+		invariant expAcc(x, n, 1) == expAcc(c, b, r)
+	{
+		var pr := r;
+		var pc := c;
+		var pb := b;
+		if b % 2 == 0 {
+			simplifyExpEven(c, b, r);
+			c := c * c;
+			b := b / 2;
+		} else {
+			simplifyExpOdd(c, b, r);
+			r := r * c;
+			c := c * c;
+			b := (b - 1) / 2;
+		}
+	}
+	assert b == 0;
+	expAccEqualsExp(c, b, r);
+	expAccEqualsExp(x, n, 1);
+}
