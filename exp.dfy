@@ -69,21 +69,16 @@ method FastExp(x: int, n: int) returns (r: int)
 		invariant b >= 0
 		invariant expAcc(x, n, 1) == expAcc(c, b, r)
 	{
-		var pr := r;
-		var pc := c;
-		var pb := b;
+		simplifyExp(c, b, r);
 		if b % 2 == 0 {
-			simplifyExpEven(c, b, r);
 			c := c * c;
 			b := b / 2;
 		} else {
-			simplifyExpOdd(c, b, r);
 			r := r * c;
 			c := c * c;
 			b := (b - 1) / 2;
 		}
 	}
 	assert b == 0;
-	expAccEqualsExp(c, b, r);
-	expAccEqualsExp(x, n, 1);
+	expAccEqualsExpOne(x, n);
 }
