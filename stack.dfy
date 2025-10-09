@@ -51,8 +51,25 @@ class Stack {
     ghost var footprint : set<object>
     ghost var content : seq<int> 
 
+    ghost predicate NodeMatchesContent(node: Node?, i: nat)
+      requires i <= |content|
+      // allow reading the stack's ghost state and all nodes inside footprint:
+      reads this`content, this`footprint, set n | n in this.footprint
+      decreases |content| - i
+    {
+      if node == null then
+        i == |content|
+      else if i == |content| then
+        node == null
+      else
+        node in footprint && node.val == content[i] && NodeMatchesContent(node.next, i+1)
+    }
+
     //todo!
-    ghost function Valid() : bool 
+    ghost function Valid() : bool
+    {
+      NodeMatchesContent(head, 0)
+    }
 
     constructor ()
     ensures Valid() && this.content == [] && this.footprint == {this}
