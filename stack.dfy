@@ -30,19 +30,67 @@ class Node {
     }
 
     constructor (v : int)
-    ensures Valid() //&& //add more here!
-    
-
-
+      ensures Valid()
+      ensures this.content == [ v ]
+      ensures this.footprint == { this } 
+    {
+      this.val := v;
+      this.next := null;
+      this.footprint := { this };
+      this.content := [ val ];
+    }
 
     //Adds to the end of the list
     method add(v : nat) returns (r : Node)
+      requires Valid()
+      ensures Valid()
+      ensures fresh(this.footprint - old(this.footprint))
+      ensures this.footprint >= old(this.footprint)
+      ensures this.content == old(this.content) + [v]
+      modifies this, footprint
+      decreases footprint
+    {
+      var node;
+      if (this.next == null) {
+        node := new Node(v);
+        this.next := node;
+      } else {
+        node := this.next.add(v);
+      }
+      this.footprint := { this } + this.next.footprint;
+      this.content := [ this.val ] + this.next.content;
+      return node;
+    }
     
-    
-
+    // TODO
     method mem(v : nat) returns (b : bool)
-
-
+    
+    method remove() returns (empty: bool, v: int)
+      requires Valid()
+      ensures Valid()
+      ensures old(this.next) == null <==> empty
+      ensures v == old(this.content[|this.content|-1])
+      ensures old(this.next) != null ==> old(this.content) == this.content + [ v ]
+      ensures this.next != null ==> old(this.next) != null
+      ensures this.next != null ==> this.next.footprint <= old(this.next.footprint)
+      modifies this, footprint
+      decreases footprint
+    {
+      if (this.next == null) {
+        return true, this.val;
+      } else {
+        var empty, v := this.next.remove();
+        if (empty) {
+          this.next := null;
+          this.footprint := { this };
+          this.content := [ this.val ];
+        } else {
+          this.footprint := { this } + this.next.footprint;
+          this.content := [ this.val ] + this.next.content;
+        }
+        return false, v;
+      }
+    }
 }
 
 class Stack {
@@ -51,40 +99,93 @@ class Stack {
     ghost var footprint : set<object>
     ghost var content : seq<int> 
 
-    ghost predicate NodeMatchesContent(node: Node?, i: nat)
-      requires i <= |content|
-      // allow reading the stack's ghost state and all nodes inside footprint:
-      reads this`content, this`footprint, set n | n in this.footprint
-      decreases |content| - i
-    {
-      if node == null then
-        i == |content|
-      else if i == |content| then
-        node == null
-      else
-        node in footprint && node.val == content[i] && NodeMatchesContent(node.next, i+1)
-    }
-
-    //todo!
     ghost function Valid() : bool
+      reads this, this.footprint
+      decreases footprint
     {
-      NodeMatchesContent(head, 0)
+      this in this.footprint
+      &&
+      if (this.head == null)
+        then
+          this.footprint == { this }
+          && 
+          this.content == []
+        else
+          this.head in this.footprint
+          &&
+          this.head.footprint <= this.footprint
+          &&
+          this.head.Valid()
+          &&
+          this.footprint == { this, this.head } + this.head.footprint
+          &&
+          this.content == this.head.content
+          &&
+          this.content != []
     }
 
     constructor ()
-    ensures Valid() && this.content == [] && this.footprint == {this}
-    ensures fresh(footprint)
+      ensures Valid()
+      ensures this.content == []
+      ensures this.footprint == {this}
+      ensures fresh(footprint)
+    {
+      this.head := null;
+      this.footprint := { this };
+      this.content := [];
+    }
     
 
     function  isEmpty() : bool
-    //Add a specification here!
+      reads this, this.footprint
+      requires Valid()
+      ensures Valid()
+      ensures this.isEmpty() <==> this.content == []
+      ensures this.isEmpty() <==> this.footprint == { this }
+    {
+      this.head == null
+    }
 
 
-    method push(v:int)
-    requires Valid()
-    ensures Valid() //&& //add more here!
+    // TODO: NAT not int
+    // TODO: check pre- and post-conditions
+    method push(v:nat)
+      requires Valid()
+      ensures Valid()
+      ensures this.content == old(this.content) + [ v ]
+      ensures fresh(this.footprint - old(this.footprint))
+      ensures this.footprint >= old(this.footprint)
+      modifies this, footprint
+    {
+      if (this.head == null) {
+        this.head := new Node(v);
+        this.content := this.content + [ v ];
+        this.footprint := { this, this.head } + this.head.footprint;
+      } else {
+        var _ := this.head.add(v);
+        this.content := this.content + [ v ];
+        this.footprint := { this, this.head } + this.head.footprint;
+      }
+    }
 
+    // TODO: check pre- and post-conditions
     method pop() returns (r:int)
-    requires Valid()
-    ensures Valid() //&& //add more here!
+      requires Valid()
+      requires !this.isEmpty() // TODO
+      ensures Valid()
+      ensures old(this.content) == this.content + [ r ]
+      ensures this.footprint <= old(this.footprint)
+      modifies this, footprint
+    {
+      var empty, v := this.head.remove();
+      if (empty) {
+        this.head := null;
+        this.footprint := { this };
+        this.content := [];
+      } else {
+        this.content := this.head.content;
+        this.footprint := { this, this.head } + this.head.footprint;
+      }
+      return v;
+    }
 }
