@@ -41,7 +41,7 @@ class Node {
     }
 
     //Adds to the end of the list
-    method add(v : nat) returns (r : Node)
+    method add(v: int) returns (r : Node)
       requires Valid()
       ensures Valid()
       ensures fresh(this.footprint - old(this.footprint))
@@ -62,8 +62,20 @@ class Node {
       return node;
     }
     
-    // TODO
-    method mem(v : nat) returns (b : bool)
+    method mem(v: int) returns (b : bool)
+      requires Valid()
+      ensures Valid()
+      ensures b <==> v in this.content
+      decreases footprint
+    {
+      if (this.val == v) {
+        b := true;
+      } else if (this.next != null) {
+        b := this.next.mem(v);
+      } else {
+        b := false;
+      }
+    }
     
     method remove() returns (empty: bool, v: int)
       requires Valid()
@@ -147,9 +159,7 @@ class Stack {
     }
 
 
-    // TODO: NAT not int
-    // TODO: check pre- and post-conditions
-    method push(v:nat)
+    method push(v: int)
       requires Valid()
       ensures Valid()
       ensures this.content == old(this.content) + [ v ]
@@ -169,9 +179,9 @@ class Stack {
     }
 
     // TODO: check pre- and post-conditions
-    method pop() returns (r:int)
+    method pop() returns (r: int)
       requires Valid()
-      requires !this.isEmpty() // TODO
+      requires !this.isEmpty()
       ensures Valid()
       ensures old(this.content) == this.content + [ r ]
       ensures this.footprint <= old(this.footprint)
@@ -188,4 +198,19 @@ class Stack {
       }
       return v;
     }
+}
+
+method example() {
+  var stack := new Stack();
+  // var a := stack.pop(); // error
+  stack.push(123);
+  var b := stack.pop();
+  if (!stack.isEmpty()) {
+    var c := stack.pop();
+    stack.push(456);
+    assert !stack.isEmpty();
+    if (!stack.isEmpty()) {
+      var c := stack.pop();
+    }
+  }
 }
