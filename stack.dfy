@@ -80,11 +80,11 @@ class Node {
     method remove() returns (empty: bool, v: int)
       requires Valid()
       ensures Valid()
-      ensures old(this.next) == null <==> empty
+      ensures |old(this.content)| == 1 <==> empty
       ensures v == old(this.content[|this.content|-1])
-      ensures old(this.next) != null ==> old(this.content) == this.content + [ v ]
-      ensures this.next != null ==> old(this.next) != null
-      ensures this.next != null ==> this.next.footprint <= old(this.next.footprint)
+      ensures empty ==> old(this.content) == this.content
+      ensures !empty ==> old(this.content) == this.content + [ v ]
+      ensures this.footprint <= old(this.footprint)
       modifies this, footprint
       decreases footprint
     {
@@ -125,15 +125,11 @@ class Stack {
         else
           this.head in this.footprint
           &&
-          this.head.footprint <= this.footprint
+          this.footprint == { this, this.head } + this.head.footprint
           &&
           this.head.Valid()
           &&
-          this.footprint == { this, this.head } + this.head.footprint
-          &&
           this.content == this.head.content
-          &&
-          this.content != []
     }
 
     constructor ()
@@ -178,7 +174,6 @@ class Stack {
       }
     }
 
-    // TODO: check pre- and post-conditions
     method pop() returns (r: int)
       requires Valid()
       requires !this.isEmpty()
@@ -202,7 +197,7 @@ class Stack {
 
 method example() {
   var stack := new Stack();
-  // var a := stack.pop(); // error
+  // var a := stack.pop(); // uncommenting should throw an error
   stack.push(123);
   var b := stack.pop();
   if (!stack.isEmpty()) {
